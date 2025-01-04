@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Status Monitor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+    }
+
+    table {
+        border-collapse: collapse;
+        width: 50%;
+        margin-top: 20px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #4CAF50;
+        color: white;
+    }
+  </style>
+</head>
+
+<body>
+<h1>Application Status Monitor</h1>
+<i class="fas fa-sync refresh-icon" onclick="refreshStatus()"></i>
+<i class="fas fa-spinner fa-spin loading-icon" id="loadingIcon"></i>
+<table id="statusTable">
+  <thead>
+  <tr>
+    <th>Application Name</th>
+    <th>Application Status</th>
+  </tr>
+  </thead>
+  <tbody id="statusBody">
+  <!-- Dynamically Generate the rows. -->
+  </tbody>
+</table>
+
+
+<script>
+  const statusBody = document.getElementById('statusBody');
+  const ws = new WebSocket('ws://localhost:8080/status'); // URL to connect to Websocket server.
+  const loadingIcon = document.getElementById('loadingIcon'); // Get Loading Icon.
+
+  ws.onopen = function () {
+      console.log(getCurrentTimeStamp() + ' Connected to Websocket server!!');
+      showLoadingIcon();
+  };
+
+  ws.onmessage = function(event) {
+      hideLoadingIcon();
+      updateStatus(event.data);
+  }
+
+  ws.onclose = function () {
+      console.log(getCurrentTimeStamp() + ' Disconnected from WebSocket server.');
+      hideLoadingIcon();
+  };
+
+  ws.onerror = function (error) {
+      console.log(getCurrentTimeStamp() + ' Error occurred from WebSocket server.');
+      hideLoadingIcon();
+  };
+
+  function updateStatus(data) {
+      const statuses = JSON.parse(data);
+      statusBody.innerHTML = '';
+      console.log(getCurrentTimeStamp());
+      console.log(statuses);
+      for(const app in statuses) {
+          const row = document.createElement('tr');
+          const appCell = document.createElement('td');
+          appCell.textContent = app;
+          const statusCell = document.createElement('td');
+          statusCell.textContent = statuses[app];
+          row.appendChild(appCell);
+          row.appendChild(statusCell);
+          statusBody.appendChild(row);
+      }
+  }
+
+  function refreshStatus() {
+      showLoadingIcon();
+      if(ws.readyState == WebSocket.OPEN) {
+          ws.send('refresh');
+      }
+  }
+
+  function showLoadingIcon() {
+      loadingIcon.style.display = 'inline-block';
+  }
+
+  function hideLoadingIcon() {
+      loadingIcon.style.display = 'none';
+  }
+
+  function getCurrentTimeStamp() {
+      return new Date().toLocaleString();
+  }
+
+</script>
+</body>
+
+</html>
